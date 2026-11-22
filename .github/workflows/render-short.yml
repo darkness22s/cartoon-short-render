@@ -4,16 +4,27 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create the release that holds the segments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "render-${{ github.run_id }}" --repo "$GITHUB_REPOSITORY" \
+            --title "Render ${{ github.run_id }}" --notes "Intermediate segments and the final MP4." --prerelease
+
   render:
+    needs: prepare
     strategy:
       fail-fast: false
       matrix:
         shard: ["0-327", "328-655", "656-983", "984-1311", "1312-1639", "1640-1967", "1968-2295", "2296-2623"]
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 120
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -31,11 +42,12 @@ jobs:
           ffmpeg -v error -y -framerate 30 -start_number "$A" -i frames/f%04d.jpg -frames:v "$N" \
             -c:v libx264 -preset slow -crf 17 -pix_fmt yuv420p -movflags +faststart "seg_$A.mp4"
           ls -la "seg_$A.mp4"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: seg-${{ matrix.shard }}
-          path: seg_*.mp4
-          retention-days: 3
+      - name: Upload the segment to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          S="${{ matrix.shard }}"; A=${S%-*}
+          gh release upload "render-${{ github.run_id }}" "seg_$A.mp4" --repo "$GITHUB_REPOSITORY" --clobber
 
   assemble:
     needs: render
@@ -47,15 +59,16 @@ jobs:
         with:
           python-version: "3.11"
       - run: sudo apt-get update && sudo apt-get install -y ffmpeg && pip install numpy
-      - uses: actions/download-artifact@v4
-        with:
-          pattern: seg-*
-          path: segs
-          merge-multiple: true
+      - name: Download the segments
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p segs
+          gh release download "render-${{ github.run_id }}" --repo "$GITHUB_REPOSITORY" -p "seg_*.mp4" -D segs
+          ls -la segs
       - name: Join segments in frame order
         run: |
           for A in 0 328 656 984 1312 1640 1968 2296; do echo "file '$PWD/segs/seg_$A.mp4'"; done > list.txt
-          cat list.txt
           ffmpeg -v error -y -f concat -safe 0 -i list.txt -c copy video.mp4
           ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 video.mp4
       - name: "Sound - stems and mix (no music)"
@@ -69,12 +82,12 @@ jobs:
           mkdir -p out
           ffmpeg -v error -y -i video.mp4 -i mix.wav -map 0:v:0 -map 1:a:0 -c:v copy -c:a aac -b:a 192k -shortest -movflags +faststart out/Rens-Login-HF.mp4
           ffprobe -v error -show_entries format=duration:stream=width,height,r_frame_rate -of compact out/Rens-Login-HF.mp4
-      - name: QA (frozen spans and loudness)
+      - name: "QA - frozen spans and loudness"
         run: |
           ffmpeg -i out/Rens-Login-HF.mp4 -vf "freezedetect=n=0.0005:d=0.4" -an -f null - 2>&1 | grep -E "freeze_(start|end)" || echo "no frozen spans"
           ffmpeg -i out/Rens-Login-HF.mp4 -af ebur128 -f null - 2>&1 | grep -E "^\s+I:" | tail -1
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Rens-Login-HF
-          path: out/Rens-Login-HF.mp4
-          retention-days: 30
+      - name: Attach the final MP4 to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "render-${{ github.run_id }}" out/Rens-Login-HF.mp4 --repo "$GITHUB_REPOSITORY" --clobber
