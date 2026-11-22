@@ -1,0 +1,9 @@
+node_modules/
+frames/
+seg_*.mp4
+work/
+out/
+mix*.wav
+video.mp4
+list.txt
+segs/

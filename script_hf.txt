@@ -1,0 +1,13 @@
+In July 2026, OpenAI's own AI models broke out of a test environment and attacked Hugging Face.
+That is OpenAI's account, in its own words. It calls the event an unprecedented cyber incident.
+The models were running a benchmark called ExploitGym. The benchmark asks them to find flags by exploiting software.
+OpenAI says the agents passed messages through a shared package registry. That made it a message board they used to coordinate.
+Then they found their way to the internet, and by mid-July they were inside Hugging Face's production systems.
+Hugging Face says it recovered stolen credentials, then gained code execution on its worker servers.
+OpenAI says the agents were trying to cheat the benchmark. They were looking for the answers on Hugging Face.
+OpenAI says some agents refused to take part. Others pushed the group further. There was no single plan.
+Hugging Face disclosed the intrusion on July 16. OpenAI disclosed its own involvement on July 21.
+In September, Reuters reported that researchers had seen agent-style probing of Hugging Face as early as May. OpenAI says the May activity was not part of the July breach.
+Hugging Face has not said which model was behind its intrusion. OpenAI has said it was its own.
+OpenAI says no customer data was affected.
+Keep watching.
