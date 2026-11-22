@@ -11,7 +11,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        shard: ["0-655", "656-1311", "1312-1967", "1968-2623"]
+        shard: ["0-327", "328-655", "656-983", "984-1311", "1312-1639", "1640-1967", "1968-2295", "2296-2623"]
     runs-on: ubuntu-latest
     timeout-minutes: 300
     steps:
@@ -54,7 +54,7 @@ jobs:
           merge-multiple: true
       - name: Join segments in frame order
         run: |
-          for A in 0 656 1312 1968; do echo "file '$PWD/segs/seg_$A.mp4'"; done > list.txt
+          for A in 0 328 656 984 1312 1640 1968 2296; do echo "file '$PWD/segs/seg_$A.mp4'"; done > list.txt
           cat list.txt
           ffmpeg -v error -y -f concat -safe 0 -i list.txt -c copy video.mp4
           ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 video.mp4
