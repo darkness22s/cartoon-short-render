@@ -58,7 +58,7 @@ jobs:
           cat list.txt
           ffmpeg -v error -y -f concat -safe 0 -i list.txt -c copy video.mp4
           ffprobe -v error -count_frames -select_streams v:0 -show_entries stream=nb_read_frames -of csv=p=0 video.mp4
-      - name: Sound: stems and mix (no music)
+      - name: "Sound - stems and mix (no music)"
         run: |
           mkdir -p work
           python3 audio_hf.py
